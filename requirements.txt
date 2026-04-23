@@ -1,0 +1,14 @@
+pandas>=2.2
+numpy>=1.26
+scikit-learn>=1.5
+shap>=0.46
+streamlit>=1.44
+beautifulsoup4>=4.12
+requests>=2.32
+matplotlib>=3.9
+seaborn>=0.13
+joblib>=1.4
+tldextract>=5.1
+dnspython>=2.7
+python-whois>=0.9
+pytest>=8.3

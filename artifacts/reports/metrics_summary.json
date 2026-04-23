@@ -1,0 +1,144 @@
+{
+  "cv_results": [
+    {
+      "model": "Random Forest",
+      "accuracy_mean": 0.9427083333333334,
+      "accuracy_std": 0.008068715304598757,
+      "precision_mean": 0.9460889513108613,
+      "precision_std": 0.017973137679796535,
+      "recall_mean": 0.9395833333333332,
+      "recall_std": 0.021245914639969925,
+      "f1_mean": 0.9424873598087885,
+      "f1_std": 0.008272580728387484,
+      "roc_auc_mean": 0.9883246527777777,
+      "roc_auc_std": 0.0018660039906206107
+    },
+    {
+      "model": "SVM",
+      "accuracy_mean": 0.93125,
+      "accuracy_std": 0.012500000000000008,
+      "precision_mean": 0.9411641030364434,
+      "precision_std": 0.019194641632044488,
+      "recall_mean": 0.9208333333333332,
+      "recall_std": 0.03200477394945253,
+      "f1_mean": 0.9303348997474321,
+      "f1_std": 0.013472158440177674,
+      "roc_auc_mean": 0.9761935763888889,
+      "roc_auc_std": 0.005480019665638396
+    },
+    {
+      "model": "Logistic Regression",
+      "accuracy_mean": 0.9291666666666668,
+      "accuracy_std": 0.01730546638107932,
+      "precision_mean": 0.9370392230927711,
+      "precision_std": 0.022511092776534476,
+      "recall_mean": 0.9208333333333334,
+      "recall_std": 0.029901458530015235,
+      "f1_mean": 0.9284548986676645,
+      "f1_std": 0.018114933932915835,
+      "roc_auc_mean": 0.981618923611111,
+      "roc_auc_std": 0.005555131684133783
+    }
+  ],
+  "best_random_forest_params": {
+    "class_weight": null,
+    "max_depth": 12,
+    "max_features": "sqrt",
+    "min_samples_leaf": 2,
+    "min_samples_split": 5,
+    "n_estimators": 100
+  },
+  "evaluation_results": {
+    "Logistic Regression": {
+      "roc_auc": 0.9852777777777778,
+      "classification_report": {
+        "legitimate": {
+          "precision": 0.9262295081967213,
+          "recall": 0.9416666666666667,
+          "f1-score": 0.9338842975206612,
+          "support": 120.0
+        },
+        "phishing": {
+          "precision": 0.940677966101695,
+          "recall": 0.925,
+          "f1-score": 0.9327731092436975,
+          "support": 120.0
+        },
+        "accuracy": 0.9333333333333333,
+        "macro avg": {
+          "precision": 0.9334537371492082,
+          "recall": 0.9333333333333333,
+          "f1-score": 0.9333287033821793,
+          "support": 240.0
+        },
+        "weighted avg": {
+          "precision": 0.9334537371492081,
+          "recall": 0.9333333333333333,
+          "f1-score": 0.9333287033821792,
+          "support": 240.0
+        }
+      }
+    },
+    "SVM": {
+      "roc_auc": 0.9825,
+      "classification_report": {
+        "legitimate": {
+          "precision": 0.9206349206349206,
+          "recall": 0.9666666666666667,
+          "f1-score": 0.943089430894309,
+          "support": 120.0
+        },
+        "phishing": {
+          "precision": 0.9649122807017544,
+          "recall": 0.9166666666666666,
+          "f1-score": 0.9401709401709402,
+          "support": 120.0
+        },
+        "accuracy": 0.9416666666666667,
+        "macro avg": {
+          "precision": 0.9427736006683375,
+          "recall": 0.9416666666666667,
+          "f1-score": 0.9416301855326246,
+          "support": 240.0
+        },
+        "weighted avg": {
+          "precision": 0.9427736006683375,
+          "recall": 0.9416666666666667,
+          "f1-score": 0.9416301855326246,
+          "support": 240.0
+        }
+      }
+    },
+    "Random Forest": {
+      "roc_auc": 0.9904166666666666,
+      "classification_report": {
+        "legitimate": {
+          "precision": 0.9586776859504132,
+          "recall": 0.9666666666666667,
+          "f1-score": 0.9626556016597511,
+          "support": 120.0
+        },
+        "phishing": {
+          "precision": 0.9663865546218487,
+          "recall": 0.9583333333333334,
+          "f1-score": 0.9623430962343096,
+          "support": 120.0
+        },
+        "accuracy": 0.9625,
+        "macro avg": {
+          "precision": 0.962532120286131,
+          "recall": 0.9625,
+          "f1-score": 0.9624993489470304,
+          "support": 240.0
+        },
+        "weighted avg": {
+          "precision": 0.962532120286131,
+          "recall": 0.9625,
+          "f1-score": 0.9624993489470304,
+          "support": 240.0
+        }
+      }
+    }
+  },
+  "precision_f1_explanation": "Trong bai toan chan website lua dao, Precision cao giup giam False Positive, tuc giam viec chan nham cac website hop le va tranh lam nguoi dung mat niem tin vao he thong. Tuy nhien, neu chi toi uu Precision ma Recall thap thi ta se bo sot nhieu trang phishing. F1-Score can bang giua Precision va Recall, vi vay phu hop hon Accuracy trong ngu canh an ninh mang, noi ma ca chan nham web tot (False Positive) lan bo lot web doc (False Negative) deu co chi phi rat lon."
+}
