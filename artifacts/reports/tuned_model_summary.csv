@@ -1,0 +1,4 @@
+model,best_f1_cv,best_params,candidate_count
+Random Forest,0.9626812962747012,"{'class_weight': None, 'max_depth': None, 'max_features': 'sqrt', 'min_samples_leaf': 1, 'min_samples_split': 2, 'n_estimators': 100}",16
+SVM,0.9524947315700046,"{'model__C': 2.0, 'model__class_weight': None, 'model__gamma': 0.1}",8
+Logistic Regression,0.9176457670456714,"{'model__C': 0.1, 'model__class_weight': None}",6

@@ -1,3 +1,10 @@
+"""Cấu hình trung tâm cho CyberShield AI.
+
+Module này chứa tất cả hằng số, đường dẫn, và bảng ánh xạ được sử dụng
+xuyên suốt hệ thống, bao gồm: danh sách 30 đặc trưng UCI, không gian
+giá trị hợp lệ, giá trị mặc định, và các tham số kết nối mạng.
+"""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -163,6 +170,8 @@ PHISH_FEED_URLS = [
     "https://openphish.com/feed.txt",
     "https://urlhaus.abuse.ch/downloads/text_online/",
 ]
+
+TRANCO_TOP_1M_URL = "https://tranco-list.eu/top-1m.csv.zip"
 
 TRAILING_COUNTRY_CODE_SUFFIXES = {
     "ac.uk",

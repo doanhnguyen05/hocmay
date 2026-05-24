@@ -1,3 +1,12 @@
+"""Phân loại kịch bản rủi ro cho URL đáng ngờ.
+
+Module này dùng hệ thống quy tắc heuristic để phân loại URL vào
+một trong các kịch bản tấn công: đánh cắp thông tin đăng nhập
+(credential phishing), phát tán mã độc, lừa đảo tài chính,
+giả mạo thương hiệu, hoặc che giấu URL. Kết quả bao gồm loại rủi ro,
+nhãn hiển thị, mô tả ngắn và danh sách tín hiệu cụ thể.
+"""
+
 from __future__ import annotations
 
 import re
@@ -140,6 +149,31 @@ def infer_risk_category(
     response_headers: Mapping[str, str] | None = None,
     redirect_count: int = 0,
 ) -> dict[str, Any]:
+    """Suy luận loại rủi ro của một URL dựa trên nhiều tín hiệu kết hợp.
+
+    Hàm phân tích URL, nội dung HTML, response headers và vector đặc
+    trưng để chấm điểm và xếp hạng các kịch bản tấn công khả nghi.
+    Kịch bản có điểm cao nhất (đạt ngưỡng tối thiểu) được chọn làm
+    loại rủi ro chính.
+
+    Args:
+        raw_url: URL gốc do người dùng nhập.
+        normalized_url: URL đã chuẩn hoá.
+        hostname: Tên máy chủ (lowercase).
+        registered_domain: Tên miền đã đăng ký.
+        features: Dict 30 đặc trưng UCI đã trích xuất.
+        html: Nội dung HTML của trang (có thể rỗng).
+        response_headers: Dict HTTP response headers (có thể ``None``).
+        redirect_count: Số lần chuyển hướng HTTP.
+
+    Returns:
+        Dict chứa các khoá:
+            - ``risk_category``: Mã loại rủi ro (ví dụ ``credential_phishing``).
+            - ``risk_category_label``: Nhãn hiển thị tiếng Việt/Anh.
+            - ``risk_summary``: Mô tả ngắn kịch bản tấn công.
+            - ``risk_signals``: Danh sách tối đa 4 tín hiệu cụ thể.
+            - ``risk_scores``: Dict điểm từng loại rủi ro.
+    """
     response_headers = {str(key).lower(): str(value) for key, value in (response_headers or {}).items()}
     scores: dict[str, int] = defaultdict(int)
     signals: dict[str, list[str]] = defaultdict(list)

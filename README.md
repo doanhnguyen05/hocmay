@@ -1,22 +1,31 @@
 # CyberShield AI
 
-CyberShield AI là đồ án Học máy theo phong cách Start-up bảo mật, tập trung vào bài toán **Phishing Website Detection**. Hệ thống nhận URL thô, tự bóc tách đặc trưng theo schema 30 cột của bộ dữ liệu UCI, dự đoán mức độ rủi ro và giải thích quyết định bằng **SHAP**.
+CyberShield AI là đồ án học máy cho bài toán **Phishing Website Detection**. Hệ thống huấn luyện mô hình trên UCI Phishing Websites Dataset, bóc tách 30 đặc trưng theo schema UCI từ URL thực tế, dự đoán xác suất phishing, dùng threshold đã tune để ra cảnh báo và giải thích bằng SHAP.
 
 ## Điểm nổi bật
 
-- Dùng **UCI Phishing Websites Dataset** làm nguồn dữ liệu học thuật chuẩn.
-- Giữ nguyên **30 thuộc tính kiểu UCI** trong cả train-time lẫn run-time.
-- Có hàm công khai `extract_features_from_url(url)` và helper `scan_url(url)`.
-- So sánh **Logistic Regression, SVM, Random Forest** bằng **Stratified 5-Fold CV**.
-- Tinh chỉnh **Random Forest** bằng **GridSearchCV**.
-- Xuất báo cáo gồm **Confusion Matrix, Classification Report, ROC-AUC, Feature Importance, SHAP Summary**.
-- Có ứng dụng **Streamlit** để demo quét URL trực tiếp.
+- Dùng **UCI Phishing Websites Dataset** với 11,055 mẫu và 30 đặc trưng.
+- So sánh **baseline**, **Logistic Regression**, **SVM** và **Random Forest** bằng Stratified 5-Fold CV.
+- Tinh chỉnh công bằng cả **Logistic Regression**, **SVM** và **Random Forest** bằng GridSearchCV.
+- Chạy **Feature Selection** bằng Mutual Information, so sánh Top-K feature sets trước khi chọn feature set cuối.
+- Xuất **Learning Curve** để phân tích overfitting/underfitting.
+- Calibrate xác suất bằng calibration split và tune decision threshold thay vì cố định 0.5.
+- Xuất artifact đồng bộ: model, raw model, feature defaults, threshold, metrics, plots và SHAP background.
+- Có live benchmark end-to-end từ URL thật qua `scan_url -> model -> threshold`.
+- Có Streamlit demo để nhập URL và xem xác suất, nhãn, risk tag, SHAP và bằng chứng kỹ thuật.
 
 ## Cấu trúc chính
 
-- `cybershield_ai/feature_extraction.py`: bóc tách đặc trưng URL + HTML + WHOIS/DNS/SSL + reputation.
-- `cybershield_ai/training_pipeline.py`: pipeline tải dữ liệu, train, đánh giá, dump model.
-- `train.py`: CLI huấn luyện.
+- `cybershield_ai/data_loader.py`: tải và chuẩn hóa dữ liệu UCI.
+- `cybershield_ai/feature_extraction.py`: public API `scan_url()` và `extract_features_from_url()`.
+- `cybershield_ai/url_features.py`: đặc trưng hình thái URL và domain.
+- `cybershield_ai/html_features.py`: đặc trưng HTML/DOM.
+- `cybershield_ai/network_clients.py`: HTTP, DNS và hydrate context live.
+- `cybershield_ai/whois_ssl.py`: WHOIS, SSL, tuổi domain.
+- `cybershield_ai/reputation.py`: Tranco, search proxy và phishing feeds.
+- `cybershield_ai/modeling.py`: mô hình, metrics, calibration, threshold tuning và biểu đồ.
+- `cybershield_ai/training_pipeline.py`: pipeline train/evaluate/export artifact.
+- `cybershield_ai/live_benchmark.py`: benchmark URL live riêng.
 - `app.py`: giao diện Streamlit.
 - `tests/`: unit test và integration test.
 
@@ -28,16 +37,30 @@ python -m pip install -r requirements.txt
 
 ## Huấn luyện
 
-Chạy đầy đủ theo đúng spec:
+Chạy trên toàn bộ dataset với grid nhanh:
+
+```bash
+python train.py --quick
+```
+
+Chạy đầy đủ grid lớn:
 
 ```bash
 python train.py
 ```
 
-Chạy nhanh để smoke test:
+Tùy chỉnh calibration và threshold:
 
 ```bash
-python train.py --quick --sample-size 2000
+python train.py --quick --threshold-metric f1
+python train.py --quick --threshold-metric recall --threshold-min-recall 0.97
+```
+
+Tùy chỉnh feature selection và bỏ qua learning curve khi cần chạy nhanh:
+
+```bash
+python train.py --quick --feature-selection-k-values 10,15,20,30
+python train.py --quick --no-learning-curves
 ```
 
 Artifact model được lưu tại:
@@ -46,85 +69,70 @@ Artifact model được lưu tại:
 artifacts/models/cybershield_ai_model.joblib
 ```
 
-Các biểu đồ và báo cáo được lưu tại:
+Report được lưu tại:
 
 ```text
 artifacts/reports/
 ```
 
-## Chạy ứng dụng
+Các report quan trọng:
 
+- `cv_results.csv`: so sánh baseline và các mô hình đã tune.
+- `tuned_model_summary.csv`: best params của Logistic Regression, SVM, Random Forest.
+- `mutual_information_feature_ranking.csv`: xếp hạng feature theo Mutual Information.
+- `feature_selection_comparison.csv`: so sánh Top-K feature sets.
+- `learning_curve_random_forest.png`: learning curve của Random Forest tốt nhất.
+- `threshold_tuning.csv`: bảng chọn ngưỡng cảnh báo.
 
-python -m streamlit run app.py
+## Live Benchmark
 
+Chạy benchmark 250 phishing URL và 250 legitimate URL:
+
+```bash
+python tools/run_live_benchmark.py --phishing-count 250 --legitimate-count 250
+```
+
+Chạy smoke benchmark nhanh:
+
+```bash
+python tools/run_live_benchmark.py --phishing-count 10 --legitimate-count 10 --max-urls 20
+```
+
+Kết quả benchmark được lưu tại:
+
+```text
+artifacts/reports/live_benchmark/
+```
+
+## Chạy Ứng Dụng
 
 ```bash
 streamlit run app.py
 ```
 
+## Kiểm Thử
 
-## Quy ước nhãn
+Chạy unit test nhanh:
 
-- Nhãn gốc UCI: `Result ∈ {-1, 1}`
-- Trong project này:
+```bash
+pytest -q -m "not slow"
+```
+
+Chạy toàn bộ test, gồm integration test train nhanh:
+
+```bash
+pytest -q
+```
+
+## Quy Ước Nhãn
+
+- Nhãn gốc UCI: `Result = -1` là phishing, `Result = 1` là legitimate.
+- Trong project:
   - `1 = phishing`
   - `0 = legitimate`
 
-## Vì sao phải quan tâm Precision và F1-Score?
+## Ghi Chú Học Thuật
 
-- **False Positive**: chặn nhầm website hợp lệ, làm giảm trải nghiệm người dùng và giảm niềm tin vào hệ thống.
-- **False Negative**: bỏ lọt website lừa đảo, gây nguy cơ mất tài khoản, rò rỉ dữ liệu và thiệt hại tài chính.
-- Vì vậy, trong an ninh mạng không thể chỉ nhìn **Accuracy**. **Precision** giúp kiểm soát cảnh báo sai; **F1-Score** cân bằng giữa Precision và Recall để hệ thống vừa cảnh báo đúng vừa không bỏ lọt quá nhiều mối đe dọa.
-
-## Ghi chú học thuật
-
-- Một số đặc trưng lịch sử trong UCI như traffic, PageRank, Google Index được tái hiện bằng **proxy hiện đại / best-effort** vì nguồn gốc ban đầu đã lỗi thời.
-- Nếu truy vấn live thất bại, hệ thống sẽ tự động dùng **feature defaults** học từ tập train để vẫn trả kết quả.
-
-
-
-🔴 1. URL giả mạo kiểu “giống thật”
-Giả mạo ngân hàng
-http://secure-vietcombank-login.com
-http://vietcombank.verify-account.security-check.net
-http://vcb-login-update.info
-http://vietcombank.com.user-authenticate.ru
-Giả mạo ví điện tử / thanh toán
-http://momo-payment-secure.com
-http://paypal.verify-user-login.net
-http://zalo-pay-support-check.xyz
-http://paypal.account-security-update.info
-Giả mạo mạng xã hội
-http://facebook.account-verify-security.com
-http://instagram.login-check-warning.net
-http://facebook-security-update.xyz
-http://meta-user-authentication.info
-🟠 2. URL dùng kỹ thuật đánh lừa (rất hay gặp)
-🔹 Dùng subdomain để lừa
-http://facebook.com.verify-login.ru
-http://paypal.com.security-check.xyz
-http://google.com.account-warning.info
-
-👉 Người dùng tưởng:
-
-domain chính là facebook.com
-👉 Nhưng thực tế:
-domain thật là verify-login.ru
-🔹 Dùng dấu @
-http://facebook.com@malicious-site.ru/login
-http://paypal.com@secure-check.xyz
-
-👉 Trình duyệt sẽ bỏ phần trước @
-
-🔹 Dùng IP thay domain
-http://192.168.1.100/login/facebook
-http://103.21.244.10/secure-paypal
-🔹 URL rất dài (đánh lừa người dùng)
-http://secure-login-facebook-account-verify-user-session-update.com/login/index.php?id=123456
-🟡 3. URL encode (nâng cao cho ML)
-http://%77%77%77.facebook.com.login.verify.ru
-http://paypal.com%2Fsecure%2Flogin%2Fupdate
-🟢 4. URL hợp lệ (để bạn cân bằng dataset)
-https://www.facebook.com
-https://www.paypal.com
-https://www.vietcombank.com.vn
+- Một số đặc trưng lịch sử trong UCI như traffic, PageRank và Google Index được tái hiện bằng proxy hiện đại/best-effort vì nguồn gốc ban đầu đã lỗi thời.
+- Khi truy vấn live thất bại, hệ thống dùng `feature_defaults` học từ tập train để vẫn trả kết quả.
+- Danh sách URL ví dụ để demo được tách sang `sample_urls.md`.

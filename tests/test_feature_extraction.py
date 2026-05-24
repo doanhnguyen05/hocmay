@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from cybershield_ai.config import DEFAULT_FEATURE_DEFAULTS, FEATURE_COLUMNS, FEATURE_VALUE_SPACE
 from cybershield_ai.feature_extraction import (
     ScanContext,
@@ -9,6 +11,15 @@ from cybershield_ai.feature_extraction import (
     extract_features_from_url,
     scan_url,
 )
+
+
+@pytest.fixture(autouse=True)
+def disable_live_network(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep feature extraction unit tests deterministic and offline."""
+    monkeypatch.setattr("cybershield_ai.feature_extraction._hydrate_live_context", lambda context: None)
+    monkeypatch.setattr("cybershield_ai.reputation._load_public_phish_indicators", lambda: {"urls": set(), "hosts": set(), "ips": set()})
+    monkeypatch.setattr("cybershield_ai.reputation._fetch_tranco_rank", lambda domain: None)
+    monkeypatch.setattr("cybershield_ai.reputation._search_bing", lambda query: None)
 
 
 def test_extract_features_returns_full_schema() -> None:
@@ -72,8 +83,8 @@ def test_google_index_uses_popularity_fallback_for_large_domains(monkeypatch) ->
         parsed=type("Parsed", (), {"scheme": "https"})(),
     )
 
-    monkeypatch.setattr("cybershield_ai.feature_extraction._fetch_tranco_rank", lambda domain: 4)
-    monkeypatch.setattr("cybershield_ai.feature_extraction._search_bing", lambda query: [])
+    monkeypatch.setattr("cybershield_ai.reputation._fetch_tranco_rank", lambda domain: 4)
+    monkeypatch.setattr("cybershield_ai.reputation._search_bing", lambda query: [])
 
     value = _feature_google_index(context)
 

@@ -1,3 +1,10 @@
+"""Giao diện Streamlit cho CyberShield AI.
+
+Ứng dụng web cho phép người dùng nhập URL, quét đặc trưng live,
+dự đoán phishing bằng mô hình Random Forest đã huấn luyện, và
+hiển thị giải thích SHAP waterfall kèm đánh giá loại rủi ro.
+"""
+
 from __future__ import annotations
 
 import joblib
@@ -15,6 +22,17 @@ MODEL_PATH = MODEL_DIR / "cybershield_ai_model.joblib"
 
 @st.cache_resource(show_spinner=False)
 def load_artifact(model_path: str) -> dict:
+    """Nạp model artifact từ file joblib và cấu hình feature defaults.
+
+    Kết quả được cache bởi Streamlit để không nạp lại mỗi lần rerun.
+
+    Args:
+        model_path: Đường dẫn tuyệt đối tới file ``.joblib``.
+
+    Returns:
+        Dictionary chứa model, feature_columns, feature_defaults,
+        background_data và các metadata khác.
+    """
     artifact = joblib.load(model_path)
     configure_feature_defaults(artifact["feature_defaults"])
     return artifact
@@ -22,18 +40,44 @@ def load_artifact(model_path: str) -> dict:
 
 @st.cache_resource(show_spinner=False)
 def build_explainer(model_path: str):
+    """Tạo SHAP TreeExplainer từ model artifact (cached).
+
+    Args:
+        model_path: Đường dẫn tới file model ``.joblib``.
+
+    Returns:
+        Đối tượng ``shap.TreeExplainer`` sẵn sàng giải thích.
+    """
     artifact = load_artifact(model_path)
     background = artifact.get("background_data")
-    return build_tree_explainer(artifact["model"], background)
+    return build_tree_explainer(artifact.get("raw_model", artifact["model"]), background)
 
 
 def render_shap_waterfall(explanation: shap.Explanation) -> None:
+    """Vẽ biểu đồ SHAP waterfall cho mẫu đầu tiên và hiển thị trên Streamlit.
+
+    Args:
+        explanation: Đối tượng ``shap.Explanation`` chứa SHAP values.
+    """
     plt.figure(figsize=(10, 5))
     shap.plots.waterfall(explanation[0], max_display=10, show=False)
     st.pyplot(plt.gcf(), clear_figure=True)
 
 
 def summarize_shap(explanation: shap.Explanation, feature_row: pd.DataFrame) -> str:
+    """Tóm tắt top 3 đặc trưng đẩy rủi ro phishing lên cao nhất.
+
+    Lấy 3 đặc trưng có SHAP value dương lớn nhất, chuyển thành tên
+    thân thiện tiếng Việt từ ``FEATURE_FRIENDLY_NAMES``.
+
+    Args:
+        explanation: Đối tượng ``shap.Explanation`` cho mẫu cần tóm tắt.
+        feature_row: DataFrame 1 dòng chứa giá trị đặc trưng.
+
+    Returns:
+        Câu mô tả bằng tiếng Việt, ví dụ:
+        *"Rủi ro tăng do URL quá dài, tên miền có dấu gạch ngang, ..."*
+    """
     values = pd.Series(explanation.values[0], index=feature_row.columns)
     positive = values.sort_values(ascending=False)
     top_positive = [feature for feature, value in positive.items() if value > 0][:3]
@@ -44,6 +88,11 @@ def summarize_shap(explanation: shap.Explanation, feature_row: pd.DataFrame) -> 
 
 
 def main() -> None:
+    """Điểm vào chính của ứng dụng Streamlit CyberShield AI.
+
+    Khởi tạo giao diện, nạp model, nhận URL từ người dùng, quét
+    đặc trưng, dự đoán, và hiển thị kết quả kèm giải thích SHAP.
+    """
     st.set_page_config(page_title="CyberShield AI", page_icon="🔒", layout="wide")
     st.markdown(
         """
@@ -87,8 +136,9 @@ def main() -> None:
     with st.spinner("Đang quét URL, bóc tách đặc trưng và giải thích bằng SHAP..."):
         scan_result = scan_url(url_input, feature_defaults=artifact["feature_defaults"])
         feature_row = pd.DataFrame([scan_result["features"]], columns=artifact["feature_columns"])
-        prediction = int(artifact["model"].predict(feature_row)[0])
         probability = float(artifact["model"].predict_proba(feature_row)[0, 1])
+        threshold = float(artifact.get("decision_threshold", 0.5))
+        prediction = int(probability >= threshold)
         explanation = get_positive_class_explanation(explainer, feature_row)
 
     col_left, col_right = st.columns([1.2, 1])
@@ -99,11 +149,24 @@ def main() -> None:
             st.success("✅ Web An toàn")
 
         st.metric("Điểm rủi ro (xác suất phishing)", f"{probability:.2%}")
-        st.info(f"Loại rủi ro nghi ngờ: **{scan_result['risk_category_label']}**")
-        st.caption(scan_result["risk_summary"])
-        if scan_result["risk_signals"]:
-            for signal in scan_result["risk_signals"]:
-                st.caption(f"- {signal}")
+        st.caption(f"Ngưỡng cảnh báo hiện dùng: {threshold:.2%}")
+        if prediction == 1:
+            st.info(f"Loại rủi ro nghi ngờ: **{scan_result['risk_category_label']}**")
+            st.caption(scan_result["risk_summary"])
+            if scan_result["risk_signals"]:
+                for signal in scan_result["risk_signals"]:
+                    st.caption(f"- {signal}")
+        else:
+            st.info(f"Tín hiệu quan sát được: **{scan_result['risk_category_label']}**")
+            st.caption(
+                "Các tín hiệu này chỉ dùng để mô tả ngữ cảnh. "
+                "Kết luận cuối cùng vẫn là Web An toàn vì điểm rủi ro thấp hơn ngưỡng cảnh báo."
+            )
+            if scan_result["risk_signals"]:
+                with st.expander("Xem tín hiệu mô tả đã ghi nhận"):
+                    st.caption(scan_result["risk_summary"])
+                    for signal in scan_result["risk_signals"]:
+                        st.caption(f"- {signal}")
         st.write(summarize_shap(explanation, feature_row))
 
         if scan_result["warnings"]:
